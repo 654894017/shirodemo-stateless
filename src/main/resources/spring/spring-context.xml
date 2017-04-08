@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <context:component-scan base-package="changs.service;changs.dao"/>
+    <bean id="sessionManager" class="org.apache.shiro.session.mgt.DefaultSessionManager">
+        <!--  <property name="sessionValidationSchedulerEnabled" value="false"/>-->
+        <property name="sessionDAO">
+            <bean class="changs.shiro.session.RedisSessionDAO"/>
+        </property>
+        <property name="sessionFactory">
+            <bean class="changs.shiro.session.RedisSessionFactory"/>
+        </property>
+    </bean>
+    <!--
+        <bean id="sessionManager" class="org.apache.shiro.web.session.mgt.ServletContainerSessionManager"/>
+    -->
+
+    <bean id="filter1" class="changs.shiro.filter.Filter1"/>
+    <bean id="statelessAuthcFilter" class="changs.shiro.filter.StatelessAuthcFilter"/>
+    <bean id="statelessRealm" class="changs.shiro.realm.StatelessRealm">
+        <property name="credentialsMatcher">
+            <bean class="changs.shiro.realm.StatelessMatcher"/>
+        </property>
+    </bean>
+
+    <!-- 安全管理器 -->
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="realm" ref="statelessRealm"/>
+        <property name="sessionManager" ref="sessionManager"/>
+        <property name="subjectFactory">
+            <bean class="changs.shiro.session.MineSubjectFactory"/>
+        </property>
+        <!--<property name="cacheManager" ref="cacheManager"/>-->
+    </bean>
+    <!-- Shiro的Web过滤器 -->
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <property name="securityManager" ref="securityManager"/>
+        <property name="loginUrl" value="/view/login"/>
+        <property name="unauthorizedUrl" value="/view/unauthorized"/>
+        <property name="filters">
+            <util:map>
+                <entry key="authc" value-ref="filter1"/>
+                <entry key="statelessAuthcFilter" value-ref="statelessAuthcFilter"/>
+            </util:map>
+        </property>
+        <property name="filterChainDefinitions">
+            <value>
+                /index.jsp = anon
+                /view = anon
+                <!--/login.jsp = authc-->
+                <!--/logout = logout-->
+                /=anon
+                /** = statelessAuthcFilter
+            </value>
+        </property>
+    </bean>
+</beans>
